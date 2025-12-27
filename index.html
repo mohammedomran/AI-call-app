@@ -215,6 +215,7 @@
         let analyser = null;
         let silenceThreshold = 0.01; // Adjust based on testing
         let lastSoundTime = Date.now();
+        let conversationHistory = []; // Store chat history for context
 
         const callButton = document.getElementById('callButton');
         const statusDiv = document.getElementById('status');
@@ -289,6 +290,20 @@
         // Text processing using Groq GPT
         async function processText(userMessage) {
             try {
+                // Build messages array with system prompt, conversation history, and current message
+                // conversationHistory already contains all previous messages (user and assistant)
+                const messages = [
+                    {
+                        role: 'system',
+                        content: SYSTEM_PROMPT
+                    },
+                    ...conversationHistory, // All previous conversation history
+                    {
+                        role: 'user',
+                        content: userMessage
+                    }
+                ];
+                
                 // Try the specified model first, fallback to available models
                 const models = ['openai/gpt-oss-120b', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'];
                 
@@ -302,16 +317,7 @@
                             },
                             body: JSON.stringify({
                                 model: model,
-                                messages: [
-                                    {
-                                        role: 'system',
-                                        content: SYSTEM_PROMPT
-                                    },
-                                    {
-                                        role: 'user',
-                                        content: userMessage
-                                    }
-                                ],
+                                messages: messages,
                                 temperature: 0.7,
                                 max_tokens: 150
                             })
@@ -593,7 +599,7 @@
 
                 updateStatus('🤖 فهد يفكر...', 'processing');
 
-                // Text processing
+                // Text processing (includes conversation history)
                 let fahdResponse = await processText(userText);
                 
                 // Clean response - remove any markdown symbols
@@ -605,6 +611,17 @@
                     .replace(/#/g, '')
                     .trim();
                 
+                // Add both user message and assistant response to history
+                conversationHistory.push({
+                    role: 'user',
+                    content: userText
+                });
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: fahdResponse
+                });
+                
+                // Display Fahd's response in UI
                 addMessage(fahdResponse, 'fahd');
 
                 updateStatus('🔊 فهد يتحدث...', 'speaking');
@@ -641,6 +658,7 @@
                 callButton.textContent = '📞 إنهاء المكالمة';
                 callButton.disabled = true;
                 conversationDiv.innerHTML = '';
+                conversationHistory = []; // Reset conversation history
                 
                 // Stop any playing audio
                 if (currentAudio) {
