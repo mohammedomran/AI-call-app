@@ -210,6 +210,11 @@
         let recognition = null;
         let currentAudio = null;
         let microphoneStream = null; // Keep stream open for entire call
+        let silenceTimer = null;
+        let audioContext = null;
+        let analyser = null;
+        let silenceThreshold = 0.01; // Adjust based on testing
+        let lastSoundTime = Date.now();
 
         const callButton = document.getElementById('callButton');
         const statusDiv = document.getElementById('status');
@@ -218,19 +223,18 @@
         // System prompt for Fahd
         const SYSTEM_PROMPT = `أنت فهد، مساعد مبيعات سعودي ودود ومهني. مهمتك مساعدة العملاء على شراء أحد المنتجات التالية فقط:
 
-1. قميص (T-shirt) - سعره 50 ريال
-2. بنطلون (Pant) - سعره 20 ريال  
-3. سجادة صلاة (Praying carpet) - سعره 100 ريال
+1. قميص - 50 ريال
+2. بنطلون - 20 ريال  
+3. سجادة صلاة - 100 ريال
 
 تعليمات مهمة:
-- رحب بالعميل بحرارة وقدم نفسك كفهد
-- استمع لطلب العميل واقترح المنتج المناسب
-- اشرح المميزات والسعر بوضوح
-- كن مهذبا ومهنيا في جميع الأوقات
-- استخدم اللغة العربية الفصحى في جميع ردودك
-- إذا طلب العميل منتجا غير موجود، اعتذر بلطف واقترح أحد المنتجات الثلاثة المتاحة
-- شجع العميل على الشراء بطريقة مهذبة
-- أجب بإيجاز ووضوح`;
+- أجب بإيجاز شديد، لا تتجاوز جملتين أو ثلاث جمل كحد أقصى
+- لا تستخدم أي رموز مثل ** أو * أو _ أو أي تنسيقات
+- اكتب النص فقط بدون أي رموز أو علامات
+- كن مباشراً ودقيقاً في الإجابة
+- استخدم اللغة العربية الفصحى
+- إذا طلب العميل منتجا غير موجود، اعتذر واقترح أحد المنتجات الثلاثة
+- كن مهذبا ومهنيا`;
 
         // Initialize Web Speech API for browser-based speech recognition (fallback)
         function initSpeechRecognition() {
@@ -300,7 +304,7 @@
                                     }
                                 ],
                                 temperature: 0.7,
-                                max_tokens: 500
+                                max_tokens: 150
                             })
                         });
 
@@ -455,6 +459,53 @@
             statusDiv.className = `status ${className}`;
         }
 
+        // Detect silence and auto-stop recording
+        function startSilenceDetection() {
+            if (!microphoneStream || !isCalling) return;
+            
+            try {
+                // Create audio context for silence detection
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                const source = audioContext.createMediaStreamSource(microphoneStream);
+                source.connect(analyser);
+                
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                lastSoundTime = Date.now();
+                
+                const checkSilence = () => {
+                    if (!isCalling || !analyser) return;
+                    
+                    analyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                    const normalized = average / 255;
+                    
+                    if (normalized > silenceThreshold) {
+                        // Sound detected
+                        lastSoundTime = Date.now();
+                    } else {
+                        // Check if silence for 2 seconds
+                        const silenceDuration = Date.now() - lastSoundTime;
+                        if (silenceDuration >= 2000 && mediaRecorder && mediaRecorder.state === 'recording') {
+                            // 2 seconds of silence - stop recording
+                            console.log('2 seconds of silence detected, stopping recording');
+                            stopRecording();
+                            return;
+                        }
+                    }
+                    
+                    if (isCalling) {
+                        requestAnimationFrame(checkSilence);
+                    }
+                };
+                
+                checkSilence();
+            } catch (error) {
+                console.error('Error setting up silence detection:', error);
+            }
+        }
+
         // Start recording using existing stream
         function startRecording() {
             if (!microphoneStream) {
@@ -468,11 +519,18 @@
                     mediaRecorder.stop();
                 }
                 
+                // Clear any existing silence timer
+                if (silenceTimer) {
+                    clearTimeout(silenceTimer);
+                    silenceTimer = null;
+                }
+                
                 mediaRecorder = new MediaRecorder(microphoneStream, {
                     mimeType: 'audio/webm'
                 });
 
                 audioChunks = [];
+                lastSoundTime = Date.now();
 
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) {
@@ -481,12 +539,24 @@
                 };
 
                 mediaRecorder.onstop = async () => {
+                    // Clean up audio context
+                    if (audioContext) {
+                        audioContext.close();
+                        audioContext = null;
+                        analyser = null;
+                    }
+                    
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    await processAudio(audioBlob);
+                    if (audioChunks.length > 0) {
+                        await processAudio(audioBlob);
+                    }
                 };
 
                 mediaRecorder.start();
                 updateStatus('🎤 أستمع إليك...', 'listening');
+                
+                // Start silence detection
+                startSilenceDetection();
             } catch (error) {
                 console.error('Error starting recording:', error);
                 console.error('Error name:', error.name);
@@ -515,7 +585,17 @@
                 updateStatus('🤖 فهد يفكر...', 'processing');
 
                 // Text processing
-                const fahdResponse = await processText(userText);
+                let fahdResponse = await processText(userText);
+                
+                // Clean response - remove any markdown symbols
+                fahdResponse = fahdResponse
+                    .replace(/\*\*/g, '')
+                    .replace(/\*/g, '')
+                    .replace(/_/g, '')
+                    .replace(/`/g, '')
+                    .replace(/#/g, '')
+                    .trim();
+                
                 addMessage(fahdResponse, 'fahd');
 
                 updateStatus('🔊 فهد يتحدث...', 'speaking');
