@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اتصل بفهد - AI Call App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .call-button {
+            width: 100%;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .call-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .call-button:active {
+            transform: translateY(0);
+        }
+
+        .call-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .status.idle {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.listening {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status.processing {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .status.speaking {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .conversation {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 12px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background: #667eea;
+            color: white;
+            text-align: left;
+            margin-right: 20%;
+        }
+
+        .message.fahd {
+            background: #764ba2;
+            color: white;
+            text-align: right;
+            margin-left: 20%;
+        }
+
+        .products-info {
+            background: #fff9e6;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .products-info h3 {
+            color: #f57c00;
+            margin-bottom: 10px;
+        }
+
+        .products-info ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .products-info li {
+            padding: 5px 0;
+            color: #333;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            font-size: 18px;
+            padding: 20px;
+            border: 2px solid #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>اتصل بفهد - مساعد المبيعات</h1>
+        
+        <div class="products-info">
+            <h3>المنتجات المتاحة:</h3>
+            <ul>
+                <li>👕 قميص - 50 ريال</li>
+                <li>👖 بنطلون - 20 ريال</li>
+                <li>🕌 سجادة صلاة - 100 ريال</li>
+            </ul>
+        </div>
+
+        <button id="callButton" class="call-button">📞 اتصل بفهد</button>
+        
+        <div id="status" class="status idle">جاهز للاتصال</div>
+        
+        <div id="conversation" class="conversation"></div>
+    </div>
+
+    <script>
+        const GROQ_API_KEY = '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';
+        const GROQ_API_URL = 'https://api.groq.com/openai/v1';
+
+        let isCalling = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recognition = null;
+        let currentAudio = null;
+        let microphoneStream = null; // Keep stream open for entire call
+
+        const callButton = document.getElementById('callButton');
+        const statusDiv = document.getElementById('status');
+        const conversationDiv = document.getElementById('conversation');
+
+        // System prompt for Fahd
+        const SYSTEM_PROMPT = `أنت فهد، مساعد مبيعات سعودي ودود ومهني. مهمتك مساعدة العملاء على شراء أحد المنتجات التالية فقط:
+
+1. قميص (T-shirt) - سعره 50 ريال
+2. بنطلون (Pant) - سعره 20 ريال  
+3. سجادة صلاة (Praying carpet) - سعره 100 ريال
+
+تعليمات مهمة:
+- رحب بالعميل بحرارة وقدم نفسك كفهد
+- استمع لطلب العميل واقترح المنتج المناسب
+- اشرح المميزات والسعر بوضوح
+- كن مهذبا ومهنيا في جميع الأوقات
+- استخدم اللغة العربية الفصحى في جميع ردودك
+- إذا طلب العميل منتجا غير موجود، اعتذر بلطف واقترح أحد المنتجات الثلاثة المتاحة
+- شجع العميل على الشراء بطريقة مهذبة
+- أجب بإيجاز ووضوح`;
+
+        // Initialize Web Speech API for browser-based speech recognition (fallback)
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'ar-SA';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+            }
+        }
+
+        // Speech to Text using Groq Whisper
+        async function speechToText(audioBlob) {
+            try {
+                const formData = new FormData();
+                formData.append('file', audioBlob, 'audio.webm');
+                formData.append('model', 'whisper-large-v3');
+                formData.append('language', 'ar');
+
+                const response = await fetch(`${GROQ_API_URL}/audio/transcriptions`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GROQ_API_KEY}`
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('STT Error:', errorText);
+                    throw new Error(`Speech to text failed: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                return data.text || '';
+            } catch (error) {
+                console.error('Speech to text error:', error);
+                throw error;
+            }
+        }
+
+        // Text processing using Groq GPT
+        async function processText(userMessage) {
+            try {
+                // Try the specified model first, fallback to available models
+                const models = ['openai/gpt-oss-120b', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'];
+                
+                for (const model of models) {
+                    try {
+                        const response = await fetch(`${GROQ_API_URL}/chat/completions`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${GROQ_API_KEY}`
+                            },
+                            body: JSON.stringify({
+                                model: model,
+                                messages: [
+                                    {
+                                        role: 'system',
+                                        content: SYSTEM_PROMPT
+                                    },
+                                    {
+                                        role: 'user',
+                                        content: userMessage
+                                    }
+                                ],
+                                temperature: 0.7,
+                                max_tokens: 500
+                            })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            return data.choices[0].message.content;
+                        }
+                    } catch (e) {
+                        console.log(`Model ${model} failed, trying next...`);
+                        continue;
+                    }
+                }
+                
+                throw new Error('All models failed');
+            } catch (error) {
+                console.error('Text processing error:', error);
+                // Fallback response
+                return 'عذراً، حدث خطأ في المعالجة. هل يمكنك إعادة المحاولة؟';
+            }
+        }
+
+        // Text to Speech using Groq
+        async function textToSpeech(text) {
+            try {
+                // Stop any currently playing audio
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    currentAudio = null;
+                }
+
+                const response = await fetch(`${GROQ_API_URL}/audio/speech`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${GROQ_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'canopylabs/orpheus-arabic-saudi',
+                        input: text,
+                        voice: 'fahad',
+                        response_format: 'wav'
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('TTS Error:', errorText);
+                    throw new Error(`Text to speech failed: ${response.statusText}`);
+                }
+
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                currentAudio = audio;
+                
+                // Wait for audio to be ready and play
+                return new Promise((resolve, reject) => {
+                    let played = false;
+                    
+                    const playAudio = () => {
+                        if (played) return;
+                        played = true;
+                        
+                        audio.play().then(() => {
+                            console.log('Audio playing successfully');
+                        }).catch((playError) => {
+                            console.error('Play error:', playError);
+                            // Try fallback
+                            URL.revokeObjectURL(audioUrl);
+                            currentAudio = null;
+                            fallbackTextToSpeech(text).then(resolve).catch(resolve);
+                        });
+                    };
+
+                    // Try to play when audio can start playing
+                    audio.addEventListener('canplay', () => {
+                        playAudio();
+                    }, { once: true });
+                    
+                    // Also try when data is loaded
+                    audio.addEventListener('loadeddata', () => {
+                        if (audio.readyState >= 2) {
+                            playAudio();
+                        }
+                    }, { once: true });
+
+                    audio.onended = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        if (currentAudio === audio) {
+                            currentAudio = null;
+                        }
+                        resolve();
+                    };
+                    
+                    audio.onerror = (e) => {
+                        console.error('Audio playback error:', e, audio.error);
+                        URL.revokeObjectURL(audioUrl);
+                        if (currentAudio === audio) {
+                            currentAudio = null;
+                        }
+                        // Try fallback
+                        fallbackTextToSpeech(text).then(resolve).catch(resolve);
+                    };
+
+                    // Timeout fallback after 3 seconds if audio doesn't start
+                    const timeoutId = setTimeout(() => {
+                        if (!played && currentAudio === audio) {
+                            console.log('Audio loading timeout, using fallback');
+                            audio.pause();
+                            URL.revokeObjectURL(audioUrl);
+                            currentAudio = null;
+                            fallbackTextToSpeech(text).then(resolve).catch(resolve);
+                        }
+                    }, 3000);
+                    
+                    // Clear timeout when audio starts playing
+                    audio.addEventListener('play', () => {
+                        clearTimeout(timeoutId);
+                    }, { once: true });
+                });
+            } catch (error) {
+                console.error('Text to speech error:', error);
+                // Fallback to browser speech synthesis
+                return fallbackTextToSpeech(text);
+            }
+        }
+
+        // Fallback text to speech using browser API
+        function fallbackTextToSpeech(text) {
+            return new Promise((resolve) => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ar-SA';
+                utterance.onend = resolve;
+                utterance.onerror = resolve;
+                speechSynthesis.speak(utterance);
+            });
+        }
+
+        // Add message to conversation
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = text;
+            conversationDiv.appendChild(messageDiv);
+            conversationDiv.scrollTop = conversationDiv.scrollHeight;
+        }
+
+        // Update status
+        function updateStatus(text, className) {
+            statusDiv.textContent = text;
+            statusDiv.className = `status ${className}`;
+        }
+
+        // Start recording using existing stream
+        function startRecording() {
+            if (!microphoneStream) {
+                console.error('No microphone stream available');
+                return;
+            }
+            
+            try {
+                // Stop previous recorder if exists
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+                
+                mediaRecorder = new MediaRecorder(microphoneStream, {
+                    mimeType: 'audio/webm'
+                });
+
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await processAudio(audioBlob);
+                };
+
+                mediaRecorder.start();
+                updateStatus('🎤 أستمع إليك...', 'listening');
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                updateStatus(`❌ Recording Error: ${error.name} - ${error.message}`, 'error');
+            }
+        }
+
+        // Stop recording
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        }
+
+        // Process audio: STT -> GPT -> TTS
+        async function processAudio(audioBlob) {
+            try {
+                updateStatus('🔄 معالجة الصوت...', 'processing');
+                
+                // Speech to Text
+                const userText = await speechToText(audioBlob);
+                addMessage(userText, 'user');
+
+                updateStatus('🤖 فهد يفكر...', 'processing');
+
+                // Text processing
+                const fahdResponse = await processText(userText);
+                addMessage(fahdResponse, 'fahd');
+
+                updateStatus('🔊 فهد يتحدث...', 'speaking');
+
+                // Text to Speech
+                await textToSpeech(fahdResponse);
+
+                // Ready for next input
+                if (isCalling) {
+                    updateStatus('🎤 أستمع إليك...', 'listening');
+                    // Continue listening - reuse existing stream
+                    startRecording();
+                }
+            } catch (error) {
+                console.error('Processing error:', error);
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                updateStatus(`❌ Processing Error: ${error.name} - ${error.message}`, 'error');
+                addMessage(`Error: ${error.message}`, 'fahd');
+                
+                if (isCalling) {
+                    setTimeout(() => {
+                        startRecording();
+                    }, 2000);
+                }
+            }
+        }
+
+        // Start/Stop call
+        callButton.addEventListener('click', async () => {
+            if (!isCalling) {
+                isCalling = true;
+                callButton.textContent = '📞 إنهاء المكالمة';
+                callButton.disabled = true;
+                conversationDiv.innerHTML = '';
+                
+                // Stop any playing audio
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    currentAudio = null;
+                }
+                
+                // Request microphone access FIRST (must be in user interaction context)
+                updateStatus('🎤 طلب الوصول للميكروفون...', 'processing');
+                
+                try {
+                    // Get microphone stream and keep it open for entire call
+                    microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    // Microphone access granted, proceed with greeting
+                    updateStatus('🔄 بدء المكالمة...', 'processing');
+                    const greeting = 'مرحباً! أنا فهد، مساعدك في المبيعات. كيف يمكنني مساعدتك اليوم؟';
+                    addMessage(greeting, 'fahd');
+                    
+                    await textToSpeech(greeting);
+                    
+                    callButton.disabled = false;
+                    
+                    // Now start recording (using the open stream)
+                    startRecording();
+                } catch (error) {
+                    console.error('Microphone access denied:', error);
+                    console.error('Error name:', error.name);
+                    console.error('Error message:', error.message);
+                    console.error('Error stack:', error.stack);
+                    console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                    isCalling = false;
+                    callButton.textContent = '📞 اتصل بفهد';
+                    callButton.disabled = false;
+                    
+                    let errorMessage = `❌ Microphone Error\n\nName: ${error.name}\nMessage: ${error.message}`;
+                    
+                    if (error.name === 'NotAllowedError') {
+                        errorMessage += `\n\n⚠️ Permission Denied!\n\nPossible causes:\n1. Running in WhatsApp/WebView (not supported)\n2. Permission was denied\n3. Need HTTPS connection\n\nTry opening in Chrome/Safari browser directly`;
+                    }
+                    
+                    errorMessage += `\n\nFull error logged to console`;
+                    updateStatus(errorMessage, 'error');
+                }
+            } else {
+                isCalling = false;
+                callButton.textContent = '📞 اتصل بفهد';
+                stopRecording();
+                
+                // Stop microphone stream
+                if (microphoneStream) {
+                    microphoneStream.getTracks().forEach(track => track.stop());
+                    microphoneStream = null;
+                }
+                
+                // Stop any playing audio
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    currentAudio = null;
+                }
+                
+                updateStatus('تم إنهاء المكالمة', 'idle');
+            }
+        });
+
+        // Initialize
+        initSpeechRecognition();
+    </script>
+</body>
+</html>
