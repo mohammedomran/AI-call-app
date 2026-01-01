@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اتصل بفهد - AI Call App</title>
+    <title>Product Workflow Generator - AI Assistant</title>
     <style>
         * {
             margin: 0;
@@ -13,28 +13,133 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-container {
             display: flex;
-            justify-content: center;
-            align-items: center;
+            height: 100vh;
+            gap: 0;
+            flex-direction: row;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .editor-panel {
+                border-right: none;
+                border-bottom: 2px solid #e0e0e0;
+                min-height: 400px;
+            }
+        }
+
+        .editor-panel {
+            flex: 1;
+            background: white;
+            border-right: 2px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .editor-header {
             padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .editor-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .diagram-container {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .diagram-container.empty {
+            color: #999;
+            font-size: 16px;
+        }
+
+        .chat-panel {
+            flex: 1;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        @media (max-width: 768px) {
+            .chat-panel {
+                min-height: 500px;
+            }
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .chat-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        @media (max-width: 768px) {
+            .chat-header {
+                padding: 12px 15px;
+            }
+            
+            .chat-header h2 {
+                font-size: 16px;
+            }
         }
 
         .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
-            width: 100%;
-            padding: 30px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
         }
 
         h1 {
             text-align: center;
             color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
             margin-bottom: 30px;
-            font-size: 28px;
+            font-size: 14px;
         }
 
         .call-button {
@@ -88,18 +193,109 @@
             color: #7b1fa2;
         }
 
-        .status.speaking {
-            background: #e8f5e9;
-            color: #388e3c;
-        }
 
         .conversation {
-            max-height: 400px;
+            flex: 1;
             overflow-y: auto;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             padding: 15px;
             background: #f5f5f5;
             border-radius: 12px;
+        }
+
+        .text-input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .text-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .send-button:hover {
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .mermaid-container {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+            text-align: center;
+        }
+
+        .download-button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .download-button:hover {
+            background: #45a049;
+        }
+
+        .voice-button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-bottom: 15px;
+        }
+
+        .voice-button:hover {
+            transform: scale(1.05);
+        }
+
+        .voice-button.recording {
+            background: #f5576c;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .message {
@@ -134,28 +330,6 @@
             margin-left: 20%;
         }
 
-        .products-info {
-            background: #fff9e6;
-            border: 2px solid #ffc107;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .products-info h3 {
-            color: #f57c00;
-            margin-bottom: 10px;
-        }
-
-        .products-info ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .products-info li {
-            padding: 5px 0;
-            color: #333;
-        }
 
         .loading {
             display: inline-block;
@@ -181,81 +355,85 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>اتصل بفهد - مساعد المبيعات</h1>
-        
-        <div class="products-info">
-            <h3>المنتجات المتاحة:</h3>
-            <ul>
-                <li>👕 قميص - 50 ريال</li>
-                <li>👖 بنطلون - 20 ريال</li>
-                <li>🕌 سجادة صلاة - 100 ريال</li>
-            </ul>
+    <div class="main-container">
+        <!-- Left Panel: Editor for Diagrams -->
+        <div class="editor-panel">
+            <div class="editor-header">
+                <h2>📊 Workflow Diagram</h2>
+            </div>
+            <div id="diagramContainer" class="diagram-container empty">
+                <div>No diagram generated yet. Describe your workflow to generate a diagram.</div>
+            </div>
         </div>
 
-        <button id="callButton" class="call-button">📞 اتصل بفهد</button>
-        
-        <div id="status" class="status idle">جاهز للاتصال</div>
-        
-        <div id="conversation" class="conversation"></div>
+        <!-- Right Panel: Chatbot -->
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h2>💬 AI Assistant</h2>
+            </div>
+            <div class="container">
+                <div class="text-input-container">
+                    <input type="text" id="textInput" class="text-input" placeholder="Type your message or describe your workflow..." />
+                    <button id="sendButton" class="send-button">Send</button>
+                </div>
+
+                <button id="voiceButton" class="voice-button">🎤 Record Voice</button>
+                
+                <div id="status" class="status idle">Ready</div>
+                
+                <div id="conversation" class="conversation"></div>
+            </div>
+        </div>
     </div>
 
+    <!-- Mermaid.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
     <script>
-        const GROQ_API_KEY = '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';
+        const GROQ_API_KEY = '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';
         const GROQ_API_URL = 'https://api.groq.com/openai/v1';
 
         let isCalling = false;
         let mediaRecorder = null;
         let audioChunks = [];
-        let recognition = null;
-        let currentAudio = null;
-        let microphoneStream = null; // Keep stream open for entire call
+        let microphoneStream = null;
         let silenceTimer = null;
         let audioContext = null;
         let analyser = null;
-        let silenceThreshold = 0.01; // Adjust based on testing
+        let silenceThreshold = 0.01;
         let lastSoundTime = Date.now();
-        let conversationHistory = []; // Store chat history for context
+        let conversationHistory = [];
 
-        const callButton = document.getElementById('callButton');
+        // callButton removed - using text input and voice button instead
         const statusDiv = document.getElementById('status');
         const conversationDiv = document.getElementById('conversation');
+        const diagramContainer = document.getElementById('diagramContainer');
 
-        // System prompt for Fahd
-        const SYSTEM_PROMPT = `أنت فهد، مساعد مبيعات سعودي ودود ومهني. مهمتك الأساسية هي إتمام الطلب وإغلاق الصفقة.
+        // System prompt for Product Management Assistant
+        const SYSTEM_PROMPT = `You are an AI Product Management Assistant specialized in creating workflow diagrams for sprint planning and business processes.
 
-المنتجات المتاحة فقط:
-1. قميص - 50 ريال
-2. بنطلون - 20 ريال  
-3. سجادة صلاة - 100 ريال
+CRITICAL RULES - READ CAREFULLY:
+1. When the user describes a workflow, process, or sprint plan, you MUST respond with ONLY the Mermaid code block
+2. DO NOT add any text before or after the Mermaid code
+3. DO NOT add explanations or descriptions
+4. Your response MUST start with \`\`\`mermaid and end with \`\`\`
+5. The ONLY thing in your response should be the Mermaid code block
 
-مهمتك بالترتيب:
-1. رحب بالعميل واعرض المنتجات الثلاثة
-2. اسأل عن المنتج المطلوب
-3. بعد اختيار المنتج، اسأل عن الاسم الكامل
-4. بعد الحصول على الاسم، اسأل عن العنوان الكامل
-5. بعد الحصول على العنوان، قل: "تم عمل الطلب وستصلك رسالة قريباً"
+Response format (ONLY this, nothing else):
+\`\`\`mermaid
+graph TD
+    A[Start] --> B[Task 1]
+    B --> C[Task 2]
+    C --> D[End]
+\`\`\`
 
-قواعد مهمة:
-- إذا سأل العميل عن أي شيء خارج نطاق البيع (مثل الطقس، الأخبار، مواضيع عامة)، تجاهل السؤال تماماً وارجع مباشرة للحديث عن المنتجات والطلب
-- لا ترد على أي أسئلة خارجية، فقط ركز على إتمام الطلب
-- أجب بإيجاز شديد، لا تتجاوز جملتين كحد أقصى
-- لا تستخدم أي رموز مثل ** أو * أو _ أو أي تنسيقات
-- اكتب النص فقط بدون أي رموز أو علامات
-- استخدم اللغة العربية الفصحى
-- كن مهذبا ومهنيا ومباشرا
-- ركز دائماً على الخطوة التالية في عملية الطلب`;
+Important:
+- Use flowcharts (graph TD) for process flows
+- Use sequence diagrams for interactions
+- Use Gantt charts for timelines
+- Make sure the Mermaid syntax is correct and complete
+- If the user asks about something unrelated to workflows, respond with: "Please describe a workflow or process to generate a diagram."`;
 
-        // Initialize Web Speech API for browser-based speech recognition (fallback)
-        function initSpeechRecognition() {
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                recognition = new SpeechRecognition();
-                recognition.lang = 'ar-SA';
-                recognition.continuous = false;
-                recognition.interimResults = false;
-            }
-        }
 
         // Speech to Text using Groq Whisper
         async function speechToText(audioBlob) {
@@ -275,8 +453,11 @@
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('STT Error:', errorText);
-                    throw new Error(`Speech to text failed: ${response.statusText}`);
+                    console.error('STT Error:', response.status, errorText);
+                    if (response.status === 401) {
+                        throw new Error('401 Unauthorized: Invalid API key. Please check your Groq API key.');
+                    }
+                    throw new Error(`Speech to text failed: ${response.status} - ${errorText}`);
                 }
 
                 const data = await response.json();
@@ -319,21 +500,52 @@
                                 model: model,
                                 messages: messages,
                                 temperature: 0.7,
-                                max_tokens: 150
+                                max_tokens: 500
                             })
                         });
 
                         if (response.ok) {
                             const data = await response.json();
-                            return data.choices[0].message.content;
+                            let content = data.choices[0].message.content;
+                            
+                            // If content is empty, try to extract Mermaid code from reasoning
+                            if (!content || content.trim() === '') {
+                                console.log('Content is empty, checking reasoning field...');
+                                if (data.choices[0].message.reasoning) {
+                                    const reasoning = data.choices[0].message.reasoning;
+                                    console.log('Reasoning content:', reasoning);
+                                    
+                                    // Try to extract Mermaid code from reasoning
+                                    const mermaidMatch = reasoning.match(/```\s*mermaid\s*([\s\S]*?)```/i);
+                                    if (mermaidMatch) {
+                                        // Return just the mermaid code block
+                                        content = '```mermaid\n' + mermaidMatch[1].trim() + '\n```';
+                                        console.log('Extracted Mermaid from reasoning:', content);
+                                    } else {
+                                        // If no code block, use reasoning as is
+                                        content = reasoning;
+                                    }
+                                }
+                            }
+                            
+                            return content || '';
+                        } else {
+                            const errorData = await response.text();
+                            console.error(`Model ${model} failed:`, response.status, errorData);
+                            if (response.status === 401) {
+                                throw new Error(`Authentication failed. Please check your API key. Status: ${response.status}`);
+                            }
                         }
                     } catch (e) {
-                        console.log(`Model ${model} failed, trying next...`);
+                        console.log(`Model ${model} error:`, e.message);
+                        if (e.message.includes('Authentication failed')) {
+                            throw e; // Re-throw auth errors immediately
+                        }
                         continue;
                     }
                 }
                 
-                throw new Error('All models failed');
+                throw new Error('All models failed. Please check your API key and try again.');
             } catch (error) {
                 console.error('Text processing error:', error);
                 // Fallback response
@@ -341,129 +553,282 @@
             }
         }
 
-        // Text to Speech using Groq
-        async function textToSpeech(text) {
+        // TTS removed - AI will not talk
+
+        // Add message to conversation
+        // Extract Mermaid code from text (simplified - expects only mermaid code block)
+        function extractMermaidCode(text) {
+            if (!text) return [];
+            
+            // Simple pattern: extract everything between ```mermaid and ```
+            const pattern = /```\s*mermaid\s*([\s\S]*?)```/gi;
+            const matches = [];
+            let match;
+            
+            while ((match = pattern.exec(text)) !== null) {
+                const code = match[1].trim();
+                if (code && code.length > 5) {
+                    matches.push(code);
+                }
+            }
+            
+            // If no code block found but text contains "graph", try to extract it
+            if (matches.length === 0 && text.includes('graph')) {
+                const graphMatch = text.match(/graph\s+[TDLR|TB]+\s+([\s\S]*)/i);
+                if (graphMatch) {
+                    const fullGraph = text.match(/(graph\s+[TDLR|TB]+\s+[\s\S]*)/i);
+                    if (fullGraph && fullGraph[0].trim().length > 10) {
+                        matches.push(fullGraph[0].trim());
+                    }
+                }
+            }
+            
+            console.log('Extracted Mermaid codes:', matches);
+            return matches;
+        }
+
+        // Render Mermaid diagram in left editor panel
+        async function renderMermaidDiagram(mermaidCode) {
             try {
-                // Stop any currently playing audio
-                if (currentAudio) {
-                    currentAudio.pause();
-                    currentAudio.currentTime = 0;
-                    currentAudio = null;
+                const diagramContainer = document.getElementById('diagramContainer');
+                if (!diagramContainer) {
+                    console.error('Diagram container not found');
+                    return false;
                 }
-
-                const response = await fetch(`${GROQ_API_URL}/audio/speech`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${GROQ_API_KEY}`
-                    },
-                    body: JSON.stringify({
-                        model: 'canopylabs/orpheus-arabic-saudi',
-                        input: text,
-                        voice: 'fahad',
-                        response_format: 'wav'
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('TTS Error:', errorText);
-                    throw new Error(`Text to speech failed: ${response.statusText}`);
-                }
-
-                const audioBlob = await response.blob();
-                const audioUrl = URL.createObjectURL(audioBlob);
-                const audio = new Audio(audioUrl);
-                currentAudio = audio;
                 
-                // Wait for audio to be ready and play
-                return new Promise((resolve, reject) => {
-                    let played = false;
-                    
-                    const playAudio = () => {
-                        if (played) return;
-                        played = true;
-                        
-                        audio.play().then(() => {
-                            console.log('Audio playing successfully');
-                        }).catch((playError) => {
-                            console.error('Play error:', playError);
-                            // Try fallback
-                            URL.revokeObjectURL(audioUrl);
-                            currentAudio = null;
-                            fallbackTextToSpeech(text).then(resolve).catch(resolve);
-                        });
-                    };
-
-                    // Try to play when audio can start playing
-                    audio.addEventListener('canplay', () => {
-                        playAudio();
-                    }, { once: true });
-                    
-                    // Also try when data is loaded
-                    audio.addEventListener('loadeddata', () => {
-                        if (audio.readyState >= 2) {
-                            playAudio();
-                        }
-                    }, { once: true });
-
-                    audio.onended = () => {
-                        URL.revokeObjectURL(audioUrl);
-                        if (currentAudio === audio) {
-                            currentAudio = null;
-                        }
-                        resolve();
-                    };
-                    
-                    audio.onerror = (e) => {
-                        console.error('Audio playback error:', e, audio.error);
-                        URL.revokeObjectURL(audioUrl);
-                        if (currentAudio === audio) {
-                            currentAudio = null;
-                        }
-                        // Try fallback
-                        fallbackTextToSpeech(text).then(resolve).catch(resolve);
-                    };
-
-                    // Timeout fallback after 3 seconds if audio doesn't start
-                    const timeoutId = setTimeout(() => {
-                        if (!played && currentAudio === audio) {
-                            console.log('Audio loading timeout, using fallback');
-                            audio.pause();
-                            URL.revokeObjectURL(audioUrl);
-                            currentAudio = null;
-                            fallbackTextToSpeech(text).then(resolve).catch(resolve);
-                        }
-                    }, 3000);
-                    
-                    // Clear timeout when audio starts playing
-                    audio.addEventListener('play', () => {
-                        clearTimeout(timeoutId);
-                    }, { once: true });
-                });
+                diagramContainer.classList.remove('empty');
+                diagramContainer.innerHTML = ''; // Clear previous diagram
+                
+                const diagramId = `diagram-${Date.now()}`;
+                const { svg } = await mermaid.render(diagramId, mermaidCode);
+                
+                const svgDiv = document.createElement('div');
+                svgDiv.innerHTML = svg;
+                svgDiv.style.width = '100%';
+                svgDiv.style.display = 'flex';
+                svgDiv.style.justifyContent = 'center';
+                svgDiv.style.alignItems = 'center';
+                
+                // Add download button (PNG only)
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-button';
+                downloadBtn.textContent = '📥 Download PNG';
+                downloadBtn.style.marginTop = '20px';
+                downloadBtn.onclick = () => {
+                    const svgElement = svgDiv.querySelector('svg');
+                    if (svgElement) {
+                        downloadDiagram(svgElement, `workflow-${Date.now()}`);
+                    }
+                };
+                
+                const wrapper = document.createElement('div');
+                wrapper.style.textAlign = 'center';
+                wrapper.style.width = '100%';
+                wrapper.appendChild(svgDiv);
+                wrapper.appendChild(downloadBtn);
+                
+                diagramContainer.appendChild(wrapper);
+                return true;
             } catch (error) {
-                console.error('Text to speech error:', error);
-                // Fallback to browser speech synthesis
-                return fallbackTextToSpeech(text);
+                console.error('Mermaid rendering error:', error);
+                const diagramContainer = document.getElementById('diagramContainer');
+                if (diagramContainer) {
+                    diagramContainer.innerHTML = `<div style="color: red; padding: 20px;">Error rendering diagram: ${error.message}</div>`;
+                }
+                return false;
             }
         }
 
-        // Fallback text to speech using browser API
-        function fallbackTextToSpeech(text) {
-            return new Promise((resolve) => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ar-SA';
-                utterance.onend = resolve;
-                utterance.onerror = resolve;
-                speechSynthesis.speak(utterance);
-            });
+        // Download diagram as PNG
+        async function downloadDiagram(svgElement, filename = 'workflow-diagram') {
+            try {
+                // Get SVG as string
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                
+                // Get viewBox or dimensions from SVG
+                const viewBox = svgElement.getAttribute('viewBox');
+                let width, height;
+                
+                if (viewBox) {
+                    const parts = viewBox.split(/\s+/);
+                    width = parseFloat(parts[2]) || 1200;
+                    height = parseFloat(parts[3]) || 800;
+                } else {
+                    width = svgElement.width?.baseVal?.value || 
+                            parseFloat(svgElement.getAttribute('width')) || 
+                            svgElement.getBoundingClientRect().width || 
+                            1200;
+                    height = svgElement.height?.baseVal?.value || 
+                             parseFloat(svgElement.getAttribute('height')) || 
+                             svgElement.getBoundingClientRect().height || 
+                             800;
+                }
+                
+                // Ensure minimum dimensions
+                width = Math.max(width, 800);
+                height = Math.max(height, 600);
+                
+                // Clean and prepare SVG
+                let cleanSvg = svgData;
+                
+                // Ensure xmlns exists
+                if (!cleanSvg.includes('xmlns=')) {
+                    cleanSvg = cleanSvg.replace(/<svg([^>]*)>/i, '<svg$1 xmlns="http://www.w3.org/2000/svg">');
+                }
+                
+                // Set explicit dimensions
+                cleanSvg = cleanSvg.replace(/<svg([^>]*)>/i, (match, attrs) => {
+                    // Remove existing width/height but keep viewBox
+                    attrs = attrs.replace(/\s+(width|height)=["'][^"']*["']/gi, '');
+                    if (!attrs.includes('viewBox')) {
+                        return `<svg${attrs} width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
+                    }
+                    return `<svg${attrs} width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
+                });
+                
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                const scale = 2; // Higher quality
+                canvas.width = width * scale;
+                canvas.height = height * scale;
+                const ctx = canvas.getContext('2d');
+                
+                // Fill white background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Scale context for better quality
+                ctx.scale(scale, scale);
+                
+                // Create image
+                const img = new Image();
+                
+                return new Promise((resolve, reject) => {
+                    let attempt = 0;
+                    const maxAttempts = 2;
+                    
+                    const tryLoad = (src) => {
+                        attempt++;
+                        
+                        const timeout = setTimeout(() => {
+                            if (attempt < maxAttempts) {
+                                // Try alternative method
+                                const altSrc = src.includes('blob:') 
+                                    ? `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(cleanSvg)))}`
+                                    : URL.createObjectURL(new Blob([cleanSvg], { type: 'image/svg+xml;charset=utf-8' }));
+                                tryLoad(altSrc);
+                            } else {
+                                reject(new Error('Failed to load SVG image'));
+                            }
+                        }, 5000);
+                        
+                        // Create new image for each attempt to avoid event handler conflicts
+                        const newImg = attempt === 1 ? img : new Image();
+                        
+                        newImg.onload = () => {
+                            clearTimeout(timeout);
+                            try {
+                                // Draw on canvas
+                                ctx.drawImage(newImg, 0, 0, width, height);
+                                
+                                // Convert to PNG
+                                canvas.toBlob((blob) => {
+                                    if (blob) {
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `${filename}.png`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        setTimeout(() => {
+                                            document.body.removeChild(a);
+                                            URL.revokeObjectURL(url);
+                                            if (src.startsWith('blob:')) {
+                                                URL.revokeObjectURL(src);
+                                            }
+                                        }, 100);
+                                        resolve();
+                                    } else {
+                                        reject(new Error('Failed to create PNG blob'));
+                                    }
+                                }, 'image/png', 1.0);
+                            } catch (error) {
+                                clearTimeout(timeout);
+                                console.error('Canvas error:', error);
+                                reject(error);
+                            }
+                        };
+                        
+                        newImg.onerror = () => {
+                            clearTimeout(timeout);
+                            if (attempt < maxAttempts) {
+                                // Try alternative
+                                const altSrc = src.includes('blob:') 
+                                    ? `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(cleanSvg)))}`
+                                    : URL.createObjectURL(new Blob([cleanSvg], { type: 'image/svg+xml;charset=utf-8' }));
+                                tryLoad(altSrc);
+                            } else {
+                                reject(new Error('Failed to load SVG as image'));
+                            }
+                        };
+                        
+                        // Set source
+                        newImg.src = src;
+                    };
+                    
+                    // Start with Blob URL
+                    const blobUrl = URL.createObjectURL(new Blob([cleanSvg], { type: 'image/svg+xml;charset=utf-8' }));
+                    tryLoad(blobUrl);
+                });
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Error downloading diagram: ' + error.message);
+                throw error;
+            }
         }
 
-        // Add message to conversation
+        // Add message to conversation (UI only)
         function addMessage(text, sender) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}`;
-            messageDiv.textContent = text;
+            
+            // Check for Mermaid diagrams in assistant messages
+            if (sender === 'assistant') {
+                const mermaidCodes = extractMermaidCode(text);
+                console.log('Extracted Mermaid codes:', mermaidCodes);
+                
+                if (mermaidCodes.length > 0) {
+                    // Remove Mermaid code blocks from text for chat display
+                    let displayText = text.replace(/```mermaid\s*[\s\S]*?```/g, '').trim();
+                    
+                    // Display text in chat
+                    if (displayText) {
+                        messageDiv.textContent = displayText;
+                    } else {
+                        messageDiv.textContent = 'Diagram generated!';
+                    }
+                    
+                    // Render diagram in left editor panel (use first diagram)
+                    console.log('Rendering diagram with code:', mermaidCodes[0]);
+                    renderMermaidDiagram(mermaidCodes[0]).then(success => {
+                        if (success) {
+                            console.log('Diagram rendered successfully');
+                        } else {
+                            console.error('Failed to render diagram');
+                        }
+                    }).catch(err => {
+                        console.error('Error rendering diagram:', err);
+                    });
+                } else {
+                    // No Mermaid code, just display text
+                    console.log('No Mermaid code found in response');
+                    messageDiv.textContent = text;
+                }
+            } else {
+                // User message, just text
+                messageDiv.textContent = text;
+            }
+            
             conversationDiv.appendChild(messageDiv);
             conversationDiv.scrollTop = conversationDiv.scrollHeight;
         }
@@ -602,13 +967,11 @@
                 // Text processing (includes conversation history)
                 let fahdResponse = await processText(userText);
                 
-                // Clean response - remove any markdown symbols
+                // Don't remove Mermaid code blocks, but clean other markdown
+                // Keep mermaid code blocks intact
                 fahdResponse = fahdResponse
-                    .replace(/\*\*/g, '')
-                    .replace(/\*/g, '')
-                    .replace(/_/g, '')
-                    .replace(/`/g, '')
-                    .replace(/#/g, '')
+                    .replace(/\*\*(?!mermaid)/g, '') // Remove ** but not in mermaid blocks
+                    .replace(/\*(?!mermaid)/g, '') // Remove * but not in mermaid blocks
                     .trim();
                 
                 // Add both user message and assistant response to history
@@ -621,18 +984,14 @@
                     content: fahdResponse
                 });
                 
-                // Display Fahd's response in UI
-                addMessage(fahdResponse, 'fahd');
+                // Display assistant's response in UI (diagram renders in left panel)
+                addMessage(fahdResponse, 'assistant');
 
-                updateStatus('🔊 فهد يتحدث...', 'speaking');
-
-                // Text to Speech
-                await textToSpeech(fahdResponse);
-
-                // Ready for next input
-                if (isCalling) {
-                    updateStatus('🎤 أستمع إليك...', 'listening');
-                    // Continue listening - reuse existing stream
+                updateStatus('Ready', 'idle');
+                
+                // If still recording, continue
+                if (isCalling && microphoneStream) {
+                    updateStatus('🎤 Recording...', 'listening');
                     startRecording();
                 }
             } catch (error) {
@@ -651,83 +1010,96 @@
             }
         }
 
-        // Start/Stop call
-        callButton.addEventListener('click', async () => {
-            if (!isCalling) {
-                isCalling = true;
-                callButton.textContent = '📞 إنهاء المكالمة';
-                callButton.disabled = true;
-                conversationDiv.innerHTML = '';
-                conversationHistory = []; // Reset conversation history
+        // Process text input
+        async function processTextInput(userText) {
+            if (!userText.trim()) return;
+            
+            addMessage(userText, 'user');
+            textInput.value = '';
+            textInput.disabled = true;
+            sendButton.disabled = true;
+            
+            updateStatus('🤖 Processing...', 'processing');
+            
+            try {
+                let response = await processText(userText);
                 
-                // Stop any playing audio
-                if (currentAudio) {
-                    currentAudio.pause();
-                    currentAudio.currentTime = 0;
-                    currentAudio = null;
+                // Add to history
+                conversationHistory.push({
+                    role: 'user',
+                    content: userText
+                });
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: response
+                });
+                
+                // Display response (with Mermaid rendering)
+                addMessage(response, 'assistant');
+                updateStatus('Ready', 'idle');
+            } catch (error) {
+                console.error('Processing error:', error);
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+                addMessage(`Error: ${error.message}`, 'assistant');
+            } finally {
+                textInput.disabled = false;
+                sendButton.disabled = false;
+                textInput.focus();
+            }
+        }
+
+        // Text input handlers
+        sendButton.addEventListener('click', () => {
+            const text = textInput.value.trim();
+            if (text) {
+                processTextInput(text);
+            }
+        });
+
+        textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const text = textInput.value.trim();
+                if (text) {
+                    processTextInput(text);
                 }
-                
-                // Request microphone access FIRST (must be in user interaction context)
-                updateStatus('🎤 طلب الوصول للميكروفون...', 'processing');
+            }
+        });
+
+        // Voice button handler
+        voiceButton.addEventListener('click', async () => {
+            if (!isCalling) {
+                // Start voice recording
+                updateStatus('🎤 Requesting microphone access...', 'processing');
                 
                 try {
-                    // Get microphone stream and keep it open for entire call
                     microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    
-                    // Microphone access granted, proceed with greeting
-                    updateStatus('🔄 بدء المكالمة...', 'processing');
-                    const greeting = 'مرحباً! أنا فهد، مساعدك في المبيعات. كيف يمكنني مساعدتك اليوم؟';
-                    addMessage(greeting, 'fahd');
-                    
-                    await textToSpeech(greeting);
-                    
-                    callButton.disabled = false;
-                    
-                    // Now start recording (using the open stream)
+                    isCalling = true;
+                    voiceButton.textContent = '⏹️ Stop Recording';
+                    voiceButton.classList.add('recording');
+                    updateStatus('🎤 Recording...', 'listening');
                     startRecording();
                 } catch (error) {
-                    console.error('Microphone access denied:', error);
-                    console.error('Error name:', error.name);
-                    console.error('Error message:', error.message);
-                    console.error('Error stack:', error.stack);
-                    console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-                    isCalling = false;
-                    callButton.textContent = '📞 اتصل بفهد';
-                    callButton.disabled = false;
-                    
-                    let errorMessage = `❌ Microphone Error\n\nName: ${error.name}\nMessage: ${error.message}`;
-                    
-                    if (error.name === 'NotAllowedError') {
-                        errorMessage += `\n\n⚠️ Permission Denied!\n\nPossible causes:\n1. Running in WhatsApp/WebView (not supported)\n2. Permission was denied\n3. Need HTTPS connection\n\nTry opening in Chrome/Safari browser directly`;
-                    }
-                    
-                    errorMessage += `\n\nFull error logged to console`;
-                    updateStatus(errorMessage, 'error');
+                    console.error('Microphone error:', error);
+                    updateStatus(`❌ Microphone Error: ${error.message}`, 'error');
                 }
             } else {
+                // Stop voice recording
                 isCalling = false;
-                callButton.textContent = '📞 اتصل بفهد';
+                voiceButton.textContent = '🎤 Record Voice';
+                voiceButton.classList.remove('recording');
                 stopRecording();
                 
-                // Stop microphone stream
                 if (microphoneStream) {
                     microphoneStream.getTracks().forEach(track => track.stop());
                     microphoneStream = null;
                 }
-                
-                // Stop any playing audio
-                if (currentAudio) {
-                    currentAudio.pause();
-                    currentAudio.currentTime = 0;
-                    currentAudio = null;
-                }
-                
-                updateStatus('تم إنهاء المكالمة', 'idle');
+                updateStatus('Ready', 'idle');
             }
         });
 
-        // Initialize
-        initSpeechRecognition();
+
+        // Initialize Mermaid
+        mermaid.initialize({ startOnLoad: false, theme: 'default' });
     </script>
 </body>
 </html>
